@@ -1,0 +1,47 @@
+<h1 mat-dialog-title>
+  {{ timeToGenerateMsg ? 'Distance matrix generated!' : 'Generate distance matrices' }}
+</h1>
+<div mat-dialog-content>
+  @if (timeToGenerateMsg){ @if (errorMsg) {
+  <mat-error>{{ errorMsg }}</mat-error>
+  } @else {
+  <div class="success-contents">
+    <div>
+      <div>
+        If the download did not automatically begin, you can click
+        <a href="javascript:void(0)" (click)="downloadMatrix()">here</a> to download the report.
+      </div>
+      <div>It is now safe to close this window.</div>
+    </div>
+    <div>Generated in {{ timeToGenerateMsg }}</div>
+  </div>
+  } } @else {
+  <div>
+    This will generate and download the distance matrix for {{ vehicles.length }} vehicles and
+    {{ visitRequests.length }} visit requests, resulting in
+    {{ matrixRequests.originEntities.length * matrixRequests.destinationEntityIds.length }}
+    elements. By default, you are limited to 3,000 elements per minute. Large requests will take
+    time to process.
+    <mat-progress-bar mode="indeterminate" *ngIf="isInProgress"></mat-progress-bar>
+    @if (invalidRequestReason) {
+    <mat-error>{{ invalidRequestReason }}</mat-error>
+    }
+  </div>
+  }
+</div>
+<div mat-dialog-actions>
+  <button *ngIf="!isInProgress" type="button" mat-stroked-button color="primary" (click)="cancel()">
+    Close
+  </button>
+  <button *ngIf="isInProgress" type="button" mat-flat-button color="warn" (click)="cancel()">
+    Cancel
+  </button>
+  <button
+    type="button"
+    mat-flat-button
+    color="primary"
+    [disabled]="isInProgress || !matrixRequests || !!invalidRequestReason"
+    (click)="generate()">
+    {{ timeToGenerateMsg ? 'Regenerate' : 'Generate' }}
+  </button>
+</div>
