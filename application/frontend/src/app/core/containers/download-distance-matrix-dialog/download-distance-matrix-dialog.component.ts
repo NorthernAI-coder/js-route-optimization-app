@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { MatLegacyDialogRef as MatDialogRef } from '@angular/material/legacy-dialog';
 import { select, Store } from '@ngrx/store';
+import Long from 'long';
 import { FileService } from '../../services';
 import {
   MatrixGenerationRequests,
@@ -37,6 +38,7 @@ export class DownloadDistanceMatrixDialogComponent implements OnInit {
   visitRequests: VisitRequest[] = [];
   shipments: Shipment[] = [];
   considerTraffic: boolean = false;
+  globalStartTime: Long | null = null;
 
   matrixRequests!: MatrixGenerationRequests;
 
@@ -72,6 +74,7 @@ export class DownloadDistanceMatrixDialogComponent implements OnInit {
         this.visitRequests = visitRequests;
         this.shipments = shipments;
         this.considerTraffic = considerTraffic;
+        this.globalStartTime = globalDuration[0];
 
         this.matrixRequests = this.service.generateDistanceMatrixRequests(
           vehicles,
@@ -102,8 +105,47 @@ export class DownloadDistanceMatrixDialogComponent implements OnInit {
     return null;
   }
 
+  get hasIncompatibleTimestamp(): boolean {
+    if (!this.considerTraffic || !this.globalStartTime) {
+      return false;
+    }
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    return this.globalStartTime.toNumber() < nowSeconds;
+  }
+
+  get nextDayStartTime(): Long {
+    if (!this.globalStartTime) {
+      return Long.fromNumber(Math.floor(Date.now() / 1000));
+    }
+    const originalSeconds = this.globalStartTime.toNumber();
+    const secondsToDay = 24 * 60 * 60;
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    const daysToAdd = Math.ceil((nowSeconds - originalSeconds) / secondsToDay);
+    return Long.fromNumber(originalSeconds + daysToAdd * secondsToDay);
+  }
+
   cancel(): void {
     this.dialogRef.close();
+  }
+
+  generateWithoutTraffic(): void {
+    this.matrixRequests = this.service.generateDistanceMatrixRequests(
+      this.vehicles,
+      this.visitRequests,
+      this.globalStartTime!,
+      false
+    );
+    this.generate();
+  }
+
+  generateWithFutureTime(): void {
+    this.matrixRequests = this.service.generateDistanceMatrixRequests(
+      this.vehicles,
+      this.visitRequests,
+      this.nextDayStartTime,
+      true
+    );
+    this.generate();
   }
 
   generate(): void {
@@ -140,6 +182,13 @@ export class DownloadDistanceMatrixDialogComponent implements OnInit {
       });
   }
 
+  downloadMatrix(): void {
+    const filename = `${
+      this.scenarioName.length ? this.scenarioName : new Date().toISOString()
+    }-distance-matrix`;
+    this.fileService.download(`${filename}.json`, [this.matrixData], 'application/json');
+  }
+
   private formatResponse(results: DistanceMatrixResult[]): object[] {
     return results.map(({ originType, originEntityId, destinationEntityId, ...rest }) => {
       const originEntity =
@@ -162,7 +211,7 @@ export class DownloadDistanceMatrixDialogComponent implements OnInit {
     if (error instanceof HttpErrorResponse) {
       switch (error.status) {
         case 400:
-          return 'Invalid request.';
+          return this.extraMessageFromErrorObject(error) || 'Invalid request.';
         case 401:
         case 403:
           return 'Authentication error. Please check your API key configuration.';
@@ -172,7 +221,7 @@ export class DownloadDistanceMatrixDialogComponent implements OnInit {
       if (error.status >= 500 && error.status < 600) {
         return 'Server error. Please try again later.';
       }
-      return error.error?.error?.message || error.message || error.statusText || 'Unknown error.';
+      return this.extraMessageFromErrorObject(error) || 'An unknown error has occurred.';
     }
     if (error instanceof Error) {
       return error.message;
@@ -180,10 +229,9 @@ export class DownloadDistanceMatrixDialogComponent implements OnInit {
     return 'An unexpected error occurred.';
   }
 
-  downloadMatrix(): void {
-    const filename = `${
-      this.scenarioName.length ? this.scenarioName : new Date().toISOString()
-    }-distance-matrix`;
-    this.fileService.download(`${filename}.json`, [this.matrixData], 'application/json');
+  private extraMessageFromErrorObject(error: HttpErrorResponse): string {
+    return Array.isArray(error.error)
+      ? error.error[0]?.error?.message
+      : error.error?.error?.message || error.message || error.statusText || '';
   }
 }
