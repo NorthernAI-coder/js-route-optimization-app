@@ -46,7 +46,7 @@
     color="primary"
     [disabled]="isInProgress || !matrixRequests || !!invalidRequestReason"
     (click)="generateWithoutTraffic()">
-    Generate without considering traffic
+    Generate without historical traffic
   </button>
   <button
     type="button"
@@ -58,7 +58,7 @@
       timeToGenerateMsg
         ? 'Regenerate'
         : hasIncompatibleTimestamp
-        ? 'Generate with a future timestamp'
+        ? 'Generate with present timestamp'
         : 'Generate'
     }}
   </button>
