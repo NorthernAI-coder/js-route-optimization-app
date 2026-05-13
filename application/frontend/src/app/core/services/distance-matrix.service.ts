@@ -72,9 +72,6 @@ interface DistanceMatrixWaypoint {
   };
 }
 
-export const MAX_ELEMENTS_TRAFFIC = 100;
-export const MAX_ELEMENTS_NO_TRAFFIC = 625;
-
 export interface DistanceMatrixRequest {
   origins: DistanceMatrixWaypoint[];
   destinations: DistanceMatrixWaypoint[];
@@ -82,6 +79,12 @@ export interface DistanceMatrixRequest {
   routingPreference: 'TRAFFIC_AWARE_OPTIMAL' | 'TRAFFIC_UNAWARE';
   departureTime?: string;
 }
+
+export const MAX_ELEMENTS_TRAFFIC = 100;
+export const MAX_ELEMENTS_NO_TRAFFIC = 625;
+
+const DELAY_PER_REQUEST = 10;
+const RETRY_DELAY_MS = 10000;
 
 @Injectable({ providedIn: 'root' })
 export class DistanceMatrixService {
@@ -113,7 +116,7 @@ export class DistanceMatrixService {
     return from(chunkedRequests).pipe(
       concatMap((chunked, index) =>
         of(chunked).pipe(
-          delay(index * 50),
+          delay(index * DELAY_PER_REQUEST),
           mergeMap(() => this.requestDistanceMatrix(chunked.request)),
           map((apiEntries: ApiResponse[]) =>
             this.mapApiResponse(apiEntries, chunked, originEntities, destinationEntityIds)
@@ -270,7 +273,7 @@ export class DistanceMatrixService {
   }
 
   private requestDistanceMatrix(request: DistanceMatrixRequest): Observable<ApiResponse[]> {
-    const maxRetries = 12;
+    const maxRetries = 20;
 
     return this.http
       .post<ApiResponse[]>(
@@ -306,9 +309,8 @@ export class DistanceMatrixService {
               }
               return retryCount + 1;
             }, 0),
-            mergeMap((retryCount: number) => {
-              const delayMs = 250 * Math.pow(1.75, retryCount);
-              return timer(delayMs);
+            mergeMap((_retryCount: number) => {
+              return timer(RETRY_DELAY_MS);
             })
           )
         )
