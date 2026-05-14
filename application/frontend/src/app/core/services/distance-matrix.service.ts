@@ -21,8 +21,8 @@ import Long from 'long';
 import * as fromRoot from 'src/app/reducers';
 import { selectMapApiKey } from '../selectors/config.selectors';
 import { ILatLng, Vehicle, VisitRequest } from '../models';
-import { Observable, of, from, timer } from 'rxjs';
-import { map, retryWhen, mergeMap, scan, concatMap, delay, last } from 'rxjs/operators';
+import { Observable, of, forkJoin, timer } from 'rxjs';
+import { map, retryWhen, mergeMap, scan, delay } from 'rxjs/operators';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 
 export interface DistanceMatrixResult {
@@ -83,7 +83,6 @@ export interface DistanceMatrixRequest {
 export const MAX_ELEMENTS_TRAFFIC = 100;
 export const MAX_ELEMENTS_NO_TRAFFIC = 625;
 
-const DELAY_PER_REQUEST = 10;
 const RETRY_DELAY_MS = 10000;
 
 @Injectable({ providedIn: 'root' })
@@ -113,19 +112,15 @@ export class DistanceMatrixService {
       return of([]);
     }
 
-    return from(chunkedRequests).pipe(
-      concatMap((chunked, index) =>
-        of(chunked).pipe(
-          delay(index * DELAY_PER_REQUEST),
-          mergeMap(() => this.requestDistanceMatrix(chunked.request)),
+    return forkJoin(
+      chunkedRequests.map((chunked) =>
+        this.requestDistanceMatrix(chunked.request).pipe(
           map((apiEntries: ApiResponse[]) =>
             this.mapApiResponse(apiEntries, chunked, originEntities, destinationEntityIds)
           )
         )
-      ),
-      scan((acc, chunk) => [...acc, ...chunk], [] as DistanceMatrixResult[]),
-      last()
-    );
+      )
+    ).pipe(map((results) => results.flat()));
   }
 
   buildRequests(
