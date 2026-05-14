@@ -23,8 +23,8 @@
     @if (hasIncompatibleTimestamp) {
     <div class="error-message">
       Traffic aware routing requires a future departure time. Your scenario's start time is in the
-      past. You can either generate without considering traffic, or generate with a future
-      timestamp.
+      past. You can either generate without live traffic (using historical traffic), or generate
+      with a future timestamp.
     </div>
     } @if (invalidRequestReason) {
     <mat-error>{{ invalidRequestReason }}</mat-error>
@@ -46,7 +46,7 @@
     color="primary"
     [disabled]="isInProgress || !matrixRequests || !!invalidRequestReason"
     (click)="generateWithoutTraffic()">
-    Generate without historical traffic
+    Generate with historical traffic
   </button>
   <button
     type="button"
