@@ -165,8 +165,7 @@ export class DownloadDistanceMatrixDialogComponent implements OnInit {
       )
       .subscribe((res) => {
         const timeToRunSeconds = (Date.now() - startTime) / 1000;
-        this.timeToGenerateMsg =
-          Math.floor(timeToRunSeconds) > 0 ? formattedDurationSeconds(timeToRunSeconds) : '< 1s';
+        this.timeToGenerateMsg = `${timeToRunSeconds.toFixed(2)}s`;
         this.isInProgress = false;
 
         if (!this.errorMsg) {
