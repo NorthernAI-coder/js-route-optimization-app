@@ -58,7 +58,7 @@ export class RouteLayer {
   }
   private symbol = {
     getWidth: 4,
-    getColor: MATERIAL_COLORS.BlueGrey.rgb,
+    getColor: [...MATERIAL_COLORS.BlueGrey.rgb, 64],
   };
 
   private onDataFiltered(data): void {
@@ -80,7 +80,7 @@ export class RouteLayer {
       jointRounded: true,
       getPath: (d) => d.path,
       getWidth: 6,
-      getColor: MATERIAL_COLORS.BlueGrey.strokeRgb,
+      getColor: [...MATERIAL_COLORS.BlueGrey.strokeRgb, 64],
     });
     this.gLayer.setProps({
       layers: [
@@ -102,7 +102,7 @@ export class RouteLayer {
       jointRounded: true,
       getPath: (d) => d.path,
       getWidth: 2,
-      getColor: (d) => d.color.rgb,
+      getColor: (d) => [...d.color.rgb, 64],
     });
     this.selectedDataOutlineLayer = new PathLayer({
       id: 'selected-routes-outline',
@@ -112,7 +112,7 @@ export class RouteLayer {
       jointRounded: true,
       getPath: (d) => d.path,
       getWidth: 6,
-      getColor: (d) => d.color.strokeRgb,
+      getColor: (d) => [...d.color.strokeRgb, 64],
     });
     this.gLayer.setProps({
       layers: [
