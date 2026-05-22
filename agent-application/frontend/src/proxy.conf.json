@@ -1,0 +1,10 @@
+{
+  "/message": {
+    "target": "http://localhost:8000",
+    "secure": false
+  },
+  "/polylines": {
+    "target": "http://localhost:8000",
+    "secure": false
+  }
+}
