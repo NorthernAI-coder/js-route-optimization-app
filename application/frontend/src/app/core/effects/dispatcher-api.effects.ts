@@ -54,9 +54,9 @@ export class DispatcherApiEffects {
         this.store.pipe(select(PreSolveVehicleSelectors.selectSelected))
       ),
       switchMap(([{ scenario }, requestedShipmentIds, requestedVehicleIds]) => {
-        return race<Action>(
-          // Deferred to recreate the inner observable when retried
-          defer(() => this.dispatcherClient.optimizeTours(scenario, Date.now())).pipe(
+        return defer(() => this.dispatcherClient.optimizeTours(scenario, Date.now()))
+          .pipe(
+            // Deferred to recreate the inner observable when retried
             map((elapsedSolution) =>
               optimizeToursSuccess({
                 elapsedSolution,
@@ -65,11 +65,11 @@ export class DispatcherApiEffects {
               })
             )
           )
-        ).pipe(
-          retryWhen(retryStrategy({ duration: 1000, retryPredicate: grpcRetryPredicate })),
-          catchError((error: any) => of(optimizeToursFailure({ error }))),
-          takeUntil(this.detectOptimizeToursCancel())
-        );
+          .pipe(
+            retryWhen(retryStrategy({ duration: 1000, retryPredicate: grpcRetryPredicate })),
+            catchError((error: any) => of(optimizeToursFailure({ error }))),
+            takeUntil(this.detectOptimizeToursCancel())
+          );
       })
     )
   );
